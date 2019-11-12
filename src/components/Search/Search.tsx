@@ -5,11 +5,8 @@ class Search extends React.Component {
     render() {
         return (
             <>
-            <div>teeeeeeeeeeeeeeeest</div>
-                <div className="gcse-search">
-                <script async src="https://cse.google.com/cse.js?cx=010854315116711862176:asahfhyujqz"></script>
-
-                </div>
+                <div className="gcse-searchbox-only" data-newwindow="false"></div>
+                <div className="gcse-searchresults-only"></div>
             </>
         )
     }
