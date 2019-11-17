@@ -1,14 +1,30 @@
 import React from 'react';
-// import logo from './logo.svg';
 import './App.css';
-// import Search from './components/Search/Search';
-import {TabsOverview} from './components/Tabs/Tabs';
+import TabNavigation from './components/Tabs/TabNavigation';
+import loadClient from './GapiClient';
+import { createStore } from 'redux';
+import { Provider } from 'react-redux';
+import reducer from './reducers/main-reducer';
+
+gapi.load("client", () => { loadClient() });
+
+const initialState = {
+  tabs: [] as any,
+  activeTab: { 
+    name: "",
+    id: "0",
+    searchProperties: { query: "", type: null },
+    searchResult: [] as any
+  }
+};
+
+export const store = createStore(reducer, initialState);
 
 const App: React.FC = () => {
   return (
-    <>
-      <TabsOverview />
-    </>
+      <Provider store={store}>
+        <TabNavigation/>
+      </Provider>
   );
 }
 
