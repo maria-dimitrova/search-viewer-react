@@ -3,8 +3,10 @@ import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Card from 'react-bootstrap/Card';
-import Modal from 'react-bootstrap/Modal'
+import Modal from 'react-bootstrap/Modal';
+import Button from 'react-bootstrap/Button';
 import { connect } from 'react-redux';
+import { executeSearchFn } from '../../actions/search-actions';
 
 interface IItemInfo {
     title: string;
@@ -12,7 +14,16 @@ interface IItemInfo {
     link: string;
 }
 
-class Grid extends React.Component<{searchResult: []}, { show: boolean, modal: { title: string, thumbnail: string, link: string }}> {
+interface IGridData {
+    show: boolean;
+    modal: {
+        title: string;
+        thumbnail: string;
+        link: string;
+    }
+}
+
+class Grid extends React.Component<{ searchResult: [], onExecuteSearch(e: string): void }, IGridData> {
     constructor(props: any){
         super(props);
         this.state = { show: false, modal: { title: "", thumbnail: "", link: "" } };
@@ -81,6 +92,7 @@ class Grid extends React.Component<{searchResult: []}, { show: boolean, modal: {
                     columns.push(<Col sm={3} key={index}>{this.cardItem(item)}</Col>);
                     return content;
                 }, [])})()}
+                {this.props.searchResult.length > 0 && <div className="text-right m-1"><Button className="m-1" variant="outline-secondary" size="sm" onClick={()=>{this.props.onExecuteSearch('scroll')}}>Load more</Button></div> }
                 {this.modalDialog()}
             </Container>
         ); 
@@ -95,4 +107,8 @@ const mapStateToProps = (state: any)=>({
     searchResult: state.activeTab.searchResult
 });
 
-export default connect(mapStateToProps)(Grid);
+const mapActionsToProps = {
+    onExecuteSearch: executeSearchFn
+};
+
+export default connect(mapStateToProps, mapActionsToProps)(Grid);

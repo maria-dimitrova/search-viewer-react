@@ -3,7 +3,7 @@ import InputGroup from 'react-bootstrap/InputGroup';
 import FormControl from 'react-bootstrap/FormControl';
 import Button from 'react-bootstrap/Button';
 import { connect } from 'react-redux';
-import { setSearchResult, setSearchType, updateSearchInput, addResult } from '../../actions/search-actions';
+import { setSearchResult, setSearchType, updateSearchInput, addResult, addActionToStore } from '../../actions/search-actions';
 
 const BUTTON_STATE: { ACTIVE: 'info', INACTIVE: 'outline-secondary' } = {
     ACTIVE: 'info',
@@ -22,10 +22,12 @@ interface ISearch {
     onUpdateSearchInput(event: any): void;
     onSetSearchType(type: string | null): void;
     onAddResult(result: []): void;
+    onAddActionToStore(fn: any): void;
 }
 
 class Search extends React.Component<ISearch> {
     private startSearchIndex = 1;
+    private scrollExecuting = false;
 
     constructor(props: any){
         super(props);
@@ -34,6 +36,7 @@ class Search extends React.Component<ISearch> {
         this.onSetSearchType = this.onSetSearchType.bind(this);
         this.onSearchExecute = this.onSearchExecute.bind(this);
         this.addScrollEventHandler();
+        this.props.onAddActionToStore(this.onSearchExecute);
     }
 
     public onSetSearchResult(result: []) {
@@ -50,8 +53,12 @@ class Search extends React.Component<ISearch> {
 
     private addScrollEventHandler() {
         window.onscroll = () => {
-            if ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight) {
-                this.onSearchExecute('scroll');
+            let scrollHeight = document.body.scrollHeight,
+                totalHeight = window.scrollY + window.innerHeight;
+        
+            if(totalHeight >= scrollHeight && !this.scrollExecuting) {
+                this.scrollExecuting = true;
+                this.onSearchExecute('scroll').finally(()=>{this.scrollExecuting = false;});
             }
         };
     }
@@ -61,7 +68,7 @@ class Search extends React.Component<ISearch> {
             this.startSearchIndex = 1;
         }
 
-        gapi.client.search.cse.list({   
+        return new Promise((resolve, reject)=>{gapi.client.search.cse.list({   
             q: this.props.query,
             cx: "010854315116711862176:asahfhyujqz",
             searchType: this.props.type,
@@ -70,7 +77,7 @@ class Search extends React.Component<ISearch> {
         .then((response: any) => {
             let result = [];
             if(this.props.type === SEARCH_TYPE.IMAGE) {
-                result = response.result.items.map((imageInfo: any)=>{
+                result = response.result.items.map((imageInfo: any) => {
                     return {
                         title: imageInfo.title,
                         thumbnail: imageInfo.image.thumbnailLink,
@@ -78,30 +85,29 @@ class Search extends React.Component<ISearch> {
                     }
                 });
             } else {
-                result = response.result.items.map((videoInfo: any) => {
-                    let videoObj;
+                result = response.result.items.reduce((result: any[], videoInfo: any) => {
                     if(videoInfo.pagemap.videoobject) {
-                        videoObj = videoInfo.pagemap.videoobject[0];
-                    } else {
-                        videoObj = videoInfo.pagemap.cse_image[0];
+                        let videoObj = videoInfo.pagemap.videoobject[0];
+                        result.push({
+                            title: videoInfo.title,
+                            thumbnail: videoObj.thumbnailurl,
+                            link: videoObj.embedurl
+                        })
                     }
-                    return {
-                        title: videoObj.title || videoInfo.title,
-                        thumbnail: videoObj.thumbnailurl || videoObj.src,
-                        link: videoObj.url || videoInfo.link
-                    }
-                });
+                    return result;
+                }, []);
             }
+            this.startSearchIndex = response.result.queries.nextPage[0].startIndex;
             if(event === 'scroll'){
-                this.startSearchIndex = response.result.queries.nextPage[0].startIndex;
                 this.props.onAddResult(result);
             } else {
-                this.startSearchIndex = 1;
                 this.props.onSetSearchResult(result);
             }
+            resolve();
         }, (error: any) => {
             console.error("Execute error", error);
-        });
+            reject(error);
+        })}).catch(()=>{});
     }
 
     public render() {
@@ -136,7 +142,8 @@ const mapActionsToProps = {
     onSetSearchType: setSearchType,
     onSetSearchResult: setSearchResult,
     onUpdateSearchInput: updateSearchInput,
-    onAddResult: addResult
+    onAddResult: addResult,
+    onAddActionToStore: addActionToStore
 };
 
 export default connect(mapStateToProps, mapActionsToProps)(Search);

@@ -15,7 +15,8 @@ const initialState = {
     id: "0",
     searchProperties: { query: "", type: null },
     searchResult: [] as any
-  }
+  },
+  executeSearch: (event?: string) => {}
 };
 
 export const store = createStore(reducer, initialState);
